@@ -12,5 +12,6 @@ Prerequisites:
 
 	setup.sh
 	go
+	jq
 	python3
 	pip3 install discord.py
