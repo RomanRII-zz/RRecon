@@ -11,5 +11,6 @@ Or in a maximized terminal, run the following:
 Prerequisites:
 
 	setup.sh
+	go
 	python3
 	pip3 install discord.py
