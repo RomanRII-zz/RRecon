@@ -26,4 +26,5 @@ gitClones
 
 echo -e "\nInstall the following go tools: amass ffuf meg subjack waybackurls"
 echo -e "Links to repos in README."
+echo -e "Github tools have been cloned in""$TOOL"". Make sure to install/configure them before using RRecon."
 echo -e "Ensure they are located in ""$HOME""/go/bin/*\n"
