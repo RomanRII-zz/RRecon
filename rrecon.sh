@@ -1,9 +1,4 @@
 ##########################################################################################################################################################################
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
-#					This is still in development. Full functionality has not been added. Contact me for function recommendations or if you run into bugs.				 #
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
-##########################################################################################################################################################################
-##########################################################################################################################################################################
 DOMAIN=$1
 COMPANY=$2
 TOOL="$HOME/Tools"
@@ -116,6 +111,9 @@ rapid7ForwardDNS () {
 	rm "$TMP"/domain-tmp.txt
 	echo $VAR5 > "$TMP"/rapid7
 	bash "$TMP"/rapid7 > "$BASE"/rapid7Scan.txt
+	cat "$BASE"/rapid7Scan.txt | jq -r '.name' | sort -u > "$BASE"/rapid7names.txt
+	cat "$BASE"/rapid7Scan.txt | jq -r '.value' | sort -u > "$BASE"/rapid7Values.txt
+	rm "$BASE"/rapid7Scan.txt
 	echo "7 / ?"
 }
 
@@ -129,7 +127,8 @@ githubScan () {
 }
 
 ffufDirScan () {
-	"$HOME"/go/bin/ffuf -w "/home/roman/Tools/Wordlists/SecLists/Discovery/Web-Content/directory-list-2.3-big.txt" -u http://"$DOMAIN"/FUZZ -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:79.0) Gecko/20100101 Firefox/79.0" -r  -o "$BASE"/ffufDirScan.txt
+	"$HOME"/go/bin/ffuf -w "/home/roman/Tools/Wordlists/SecLists/Discovery/Web-Content/directory-list-2.3-big.txt" -u http://"$DOMAIN"/FUZZ -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:79.0) Gecko/20100101 Firefox/79.0" -r  -o "$BASE"/ffufDirScan-temp.txt
+	cat "$BASE"/ffufDirScan-temp.txt | jq > "$BASE"/ffufDirScan.txt	
 	echo "9 / ?"
 }
 
@@ -144,8 +143,17 @@ amassPassiveEnum () {
 massDNS () {
 	# Resolvers.txt = 8.8.8.8 4.4.4.4 1.1.1.1 8.8.4.4   -- New line for each entry
 	"$TOOL"/massdns/bin/massdns -r "$TOOL"/Wordlists/resolvers.txt -t A -o Sr "$BASE"/githubScan.txt | sort -u > "$BASE"/massdns.tmp
-	cat "$BASE"/massdns.tmp | grep -v "SERVFAIL" | grep -v "NXDOMAIN" | grep -E "([a-z0-9][a-z0-9\-]{0,61}[a-z0-9]\.)+[a-z0-9][a-z0-9\-]*[a-z0-9]" -o  > "$BASE"/massdns.txt
+	cat "$BASE"/massdns.tmp | grep -v "SERVFAIL" | grep -v "NXDOMAIN" | grep -E "([a-z0-9][a-z0-9\-]{0,61}[a-z0-9]\.)+[a-z0-9][a-z0-9\-]*[a-z0-9]" -o  | sort -u > "$BASE"/githubScanmassdns.txt
 	rm "$BASE"/massdns.tmp
+	"$TOOL"/massdns/bin/massdns -r "$TOOL"/Wordlists/resolvers.txt -t A -o Sr "$BASE"/amassPassiveEnum.txt | sort -u > "$BASE"/amassPassiveEnum.tmp
+	rm "$BASE"/amassPassiveEnum.txt
+	cat "$BASE"/amassPassiveEnum.tmp | grep -v "SERVFAIL" | grep -v "NXDOMAIN" | grep -E "([a-z0-9][a-z0-9\-]{0,61}[a-z0-9]\.)+[a-z0-9][a-z0-9\-]*[a-z0-9]" -o  | sort -u > "$BASE"/amassPassiveEnum.txt
+	rm "$BASE"/amassPassiveEnum.tmp
+	"$TOOL"/massdns/bin/massdns -r "$TOOL"/Wordlists/resolvers.txt -t A -o Sr "$BASE"/rapid7names.txt | sort -u > "$BASE"/rapid7names.tmp
+	"$TOOL"/massdns/bin/massdns -r "$TOOL"/Wordlists/resolvers.txt -t A -o Sr "$BASE"/rapid7Values.txt | sort -u > "$BASE"/rapid7Values.tmp
+	rm "$BASE"/rapid7names.txt 
+	mv "$BASE"/rapid7names.tmp "$BASE"/rapid7names.txt
+	mv "$BASE"/rapid7Values.tmp "$BASE"/rapid7Values-masscanned.txt
 	echo "11 / ?"
 }
 
@@ -169,14 +177,6 @@ linkFinder () {
 	echo "14 / ?"
 }
 
-fileCleanup () {
-	cd "$BASE"
-	mv amass*.txt amass
-	mv waybacked.txt Waybacked/
-	mv githubScan.txt rapid7Scan.txt massdns.txt Subdomains/
-	mv ffufDirScan.txt linkFinder.txt ASNs.txt CIDRs.txt Results/ 
-} 
-
 finishedAlert () {
 	python3 "$HOME"/Hunting/Tools/ReconBot.py scancomplete
 }
@@ -198,6 +198,5 @@ massDNS
 waybacked
 jsSearch
 linkFinder
-#fileCleanup
 finishedAlert
 ################################### 
